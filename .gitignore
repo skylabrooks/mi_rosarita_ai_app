@@ -64,6 +64,7 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.local
 
 # Service account credentials (NEVER commit these files!)
 service-account.json

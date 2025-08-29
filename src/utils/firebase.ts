@@ -1,8 +1,9 @@
 import {initializeApp} from 'firebase/app';
-import {getAuth, connectAuthEmulator} from '@firebase/auth';
-import {getFirestore, connectFirestoreEmulator} from 'firebase/firestore';
-import {getFunctions, connectFunctionsEmulator} from 'firebase/functions';
+import {getAuth} from '@firebase/auth';
+import {getFirestore} from 'firebase/firestore';
+import {getFunctions} from 'firebase/functions';
 
+// Firebase configuration - ensure these are set in your environment
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -12,24 +13,63 @@ const firebaseConfig = {
   appId: process.env.FIREBASE_APP_ID,
 };
 
+// Validate required configuration values
+const validateFirebaseConfig = () => {
+  if (!firebaseConfig.apiKey) {
+    throw new Error('FIREBASE_API_KEY is required but not provided');
+  }
+  if (!firebaseConfig.projectId) {
+    throw new Error('FIREBASE_PROJECT_ID is required but not provided');
+  }
+  if (!firebaseConfig.authDomain) {
+    throw new Error('FIREBASE_AUTH_DOMAIN is required but not provided');
+  }
+};
+
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+let auth;
+let db;
+let functions;
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
+try {
+  // Validate configuration before initialization
+  validateFirebaseConfig();
 
-// Initialize Cloud Firestore
-export const db = getFirestore(app);
+  // Create Firebase app instance
+  app = initializeApp(firebaseConfig);
 
-// Initialize Cloud Functions
-export const functions = getFunctions(app, 'us-central1');
+  // Initialize Firebase services
+  auth = getAuth(app);
+  db = getFirestore(app);
+  functions = getFunctions(app, 'us-central1');
 
-// Connect to emulators in development
-if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-  // Uncomment these lines to use Firebase emulators
-  // connectAuthEmulator(auth, 'http://localhost:9099');
-  // connectFirestoreEmulator(db, 'localhost', 8080);
-  // connectFunctionsEmulator(functions, 'localhost', 5001);
+  console.log('✅ Firebase initialized successfully');
+
+} catch (error) {
+  console.error('🔴 Failed to initialize Firebase:', error);
+
+  // Provide helpful setup instructions
+  console.error(`
+📝 To fix this issue:
+1. Copy .env.example to .env
+2. Fill in your actual Firebase configuration values from the Firebase Console
+3. Ensure all required fields are set
+
+Required configuration values:
+- FIREBASE_API_KEY (get from Firebase Console > Project Settings > General)
+- FIREBASE_AUTH_DOMAIN (usually: your-project-id.firebaseapp.com)
+- FIREBASE_PROJECT_ID (your Firebase project ID)
+
+Optional values:
+- FIREBASE_STORAGE_BUCKET
+- FIREBASE_MESSAGING_SENDER_ID
+- FIREBASE_APP_ID
+  `);
+
+  throw error;
 }
 
+// Export Firebase services
+export { auth, db, functions };
 export default app;

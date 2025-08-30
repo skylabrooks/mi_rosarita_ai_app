@@ -1,10 +1,19 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import { generateItinerary, fetchUserItineraries } from '../thunks/itineraryThunks';
-import { ItineraryItem, UserPreferences } from '../../types/services';
+
+export interface ItineraryItem {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  time: string;
+  duration: string;
+  cost?: number;
+  category: 'food' | 'activity' | 'transport' | 'accommodation' | 'shopping';
+}
 
 export interface Itinerary {
   id: string;
-  userId: string;
   title: string;
   date: string;
   duration: number; // in days
@@ -12,7 +21,6 @@ export interface Itinerary {
   totalCost?: number;
   createdAt: string;
   updatedAt: string;
-  preferences?: UserPreferences;
 }
 
 interface ItineraryState {

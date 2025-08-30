@@ -1,9 +1,8 @@
 import {setGlobalOptions} from "firebase-functions";
 import {onRequest, onCall} from "firebase-functions/https";
-import {onDocumentCreated} from "firebase-functions/firestore";
 import * as logger from "firebase-functions/logger";
 import cors from "cors";
-import {initializeApp, getApps, cert} from "firebase-admin/app";
+import {initializeApp, getApps} from "firebase-admin/app";
 import {getAuth} from "firebase-admin/auth";
 import {getFirestore} from "firebase-admin/firestore";
 import {GeminiService, UserPreferences} from "./services/geminiService";
@@ -12,14 +11,10 @@ import {
   FlightSearchParams,
   HotelSearchParams,
 } from "./services/amadeusService";
+import {indexProjectFiles} from "./services/indexingService";
 
 // Initialize services with secure validation
-const geminiService = new GeminiService(
-  process.env.GOOGLE_AI_API_KEY || (() => {
-    logger.error("GOOGLE_AI_API_KEY environment variable is not set");
-    throw new Error("GOOGLE_AI_API_KEY environment variable is required for Gemini service");
-  })()
-);
+const geminiService = new GeminiService();
 
 // Amadeus service with secure validation
 const amadeusApiKey = process.env.AMADEUS_API_KEY;
@@ -28,9 +23,11 @@ const amadeusApiSecret = process.env.AMADEUS_API_SECRET;
 if (!amadeusApiKey || !amadeusApiSecret) {
   logger.error("Amadeus API credentials are not properly configured", {
     hasApiKey: !!amadeusApiKey,
-    hasApiSecret: !!amadeusApiSecret
+    hasApiSecret: !!amadeusApiSecret,
   });
-  throw new Error("AMADUES_API_KEY and AMADEUS_API_SECRET environment variables are required for Amadeus service");
+  throw new Error(
+    "AMADEUS_API_KEY and AMADEUS_API_SECRET environment variables are required for Amadeus service"
+  );
 }
 
 const amadeusService = new AmadeusService(amadeusApiKey, amadeusApiSecret);
@@ -46,32 +43,6 @@ const adminDB = getFirestore();
 // Configure CORS
 const corsHandler = cors({origin: true});
 
-// Authentication middleware for callable functions
-const withAuth = (handler: (req: any, userId: string) => Promise<any>) => {
-  return async (request: any) => {
-    try {
-      if (!request.auth) {
-        throw new Error('User must be authenticated');
-      }
-
-      const userId = request.auth.uid;
-
-      // Verify the user still exists
-      await adminAuth.getUser(userId);
-
-      return await handler(request, userId);
-    } catch (error: any) {
-      logger.error('Authentication middleware error:', error);
-
-      if (error.code === 'auth/user-not-found') {
-        throw new Error('User account no longer exists');
-      }
-
-      throw error;
-    }
-  };
-};
-
 setGlobalOptions({
   maxInstances: 10,
   region: "us-central1",
@@ -86,8 +57,17 @@ export const generateItinerary = onCall(
     memory: "1GiB",
     timeoutSeconds: 60,
   },
-  withAuth(async (request, userId) => {
+  async (request, _response?) => {
     try {
+      if (!request.auth) {
+        throw new Error("User must be authenticated");
+      }
+
+      const userId = request.auth.uid;
+
+      // Verify the user still exists
+      await adminAuth.getUser(userId);
+
       const preferences: UserPreferences = request.data;
 
       if (!preferences || !preferences.duration || !preferences.interests) {
@@ -100,28 +80,38 @@ export const generateItinerary = onCall(
       const itinerary = await geminiService.generateItinerary(preferences);
 
       // Store generated itinerary in Firestore for the user
-      const userItineraryRef = adminDB.collection('users').doc(userId).collection('itineraries').doc();
+      const userItineraryRef = adminDB
+        .collection("users")
+        .doc(userId)
+        .collection("itineraries")
+        .doc();
       await userItineraryRef.set({
         ...itinerary,
         userId,
         createdAt: new Date(),
-        preferences
+        preferences,
       });
 
       return {
         success: true,
         itinerary: {
           ...itinerary,
-          id: userItineraryRef.id
+          id: userItineraryRef.id,
         },
       };
-    } catch (error) {
-      logger.error("Error generating itinerary:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error generating itinerary:", errorMessage);
+
+      if (error instanceof Error && error.name === "auth/user-not-found" || errorMessage.includes("auth/user-not-found")) {
+        throw new Error("User account no longer exists");
+      }
+
       throw new Error(
         `Failed to generate itinerary: ${(error as Error).message}`
       );
     }
-  })
+  }
 );
 
 /**
@@ -145,7 +135,8 @@ export const generateDealDescription = onCall(
         businessName: businessInfo.name,
       });
 
-      const description = await geminiService.generateDealDescription(businessInfo);
+      const description =
+        await geminiService.generateDealDescription(businessInfo);
 
       return {
         success: true,
@@ -275,8 +266,17 @@ export const generateEnhancedItinerary = onCall(
     memory: "1GiB",
     timeoutSeconds: 60,
   },
-  withAuth(async (request, userId) => {
+  async (request, _response?) => {
     try {
+      if (!request.auth) {
+        throw new Error("User must be authenticated");
+      }
+
+      const userId = request.auth.uid;
+
+      // Verify the user still exists
+      await adminAuth.getUser(userId);
+
       const {preferences, flightParams, hotelParams} = request.data;
 
       if (!preferences || !preferences.duration || !preferences.interests) {
@@ -306,7 +306,10 @@ export const generateEnhancedItinerary = onCall(
       if (hotelParams) {
         try {
           hotels = await amadeusService.searchHotels(hotelParams);
-          logger.info("Hotels added to itinerary", {userId, hotelCount: hotels.length});
+          logger.info("Hotels added to itinerary", {
+            userId,
+            hotelCount: hotels.length,
+          });
         } catch (hotelError) {
           logger.warn("Failed to fetch hotels for itinerary", hotelError);
         }
@@ -323,29 +326,39 @@ export const generateEnhancedItinerary = onCall(
       };
 
       // Store enhanced itinerary for the user
-      const userItineraryRef = adminDB.collection('users').doc(userId).collection('itineraries').doc();
+      const userItineraryRef = adminDB
+        .collection("users")
+        .doc(userId)
+        .collection("itineraries")
+        .doc();
       await userItineraryRef.set({
         ...enhancedItinerary,
         userId,
         createdAt: new Date(),
         preferences,
-        hasTravelOptions: !!(flights || hotels)
+        hasTravelOptions: !!(flights || hotels),
       });
 
       return {
         success: true,
         itinerary: {
           ...enhancedItinerary,
-          id: userItineraryRef.id
+          id: userItineraryRef.id,
         },
       };
-    } catch (error) {
-      logger.error("Error generating enhanced itinerary:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error generating enhanced itinerary:", errorMessage);
+
+      if (error instanceof Error && error.name === "auth/user-not-found" || errorMessage.includes("auth/user-not-found")) {
+        throw new Error("User account no longer exists");
+      }
+
       throw new Error(
         `Failed to generate enhanced itinerary: ${(error as Error).message}`
       );
     }
-  })
+  }
 );
 
 /**
@@ -376,36 +389,54 @@ export const getUserItineraries = onCall(
     memory: "512MiB",
     timeoutSeconds: 30,
   },
-  withAuth(async (request, userId) => {
+  async (request, _response?) => {
     try {
-      const { limit = 10, offset = 0 } = request.data || {};
+      if (!request.auth) {
+        throw new Error("User must be authenticated");
+      }
 
-      logger.info("Getting user itineraries", { userId, limit, offset });
+      const userId = request.auth.uid;
 
-      const itinerariesRef = adminDB.collection('users').doc(userId).collection('itineraries');
+      // Verify the user still exists
+      await adminAuth.getUser(userId);
+
+      const {limit = 10, offset = 0} = request.data || {};
+
+      logger.info("Getting user itineraries", {userId, limit, offset});
+
+      const itinerariesRef = adminDB
+        .collection("users")
+        .doc(userId)
+        .collection("itineraries");
       const query = itinerariesRef
-        .orderBy('createdAt', 'desc')
+        .orderBy("createdAt", "desc")
         .limit(limit)
         .offset(offset);
 
       const snapshot = await query.get();
 
-      const itineraries = snapshot.docs.map(doc => ({
+      const itineraries = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt.toDate().toISOString()
+        createdAt: doc.data().createdAt.toDate().toISOString(),
       }));
 
       return {
         success: true,
         itineraries,
-        hasMore: itineraries.length === limit
+        hasMore: itineraries.length === limit,
       };
-    } catch (error) {
-      logger.error("Error retrieving user itineraries:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error retrieving user itineraries:", errorMessage);
+
+      if (error instanceof Error && error.name === "auth/user-not-found" || errorMessage.includes("auth/user-not-found")) {
+        throw new Error("User account no longer exists");
+      }
+
       throw new Error(`Failed to get itineraries: ${(error as Error).message}`);
     }
-  })
+  }
 );
 
 /**
@@ -417,17 +448,26 @@ export const updateUserPreferences = onCall(
     memory: "256MiB",
     timeoutSeconds: 30,
   },
-  withAuth(async (request, userId) => {
+  async (request, _response?) => {
     try {
+      if (!request.auth) {
+        throw new Error("User must be authenticated");
+      }
+
+      const userId = request.auth.uid;
+
+      // Verify the user still exists
+      await adminAuth.getUser(userId);
+
       const preferences = request.data;
 
       if (!preferences) {
         throw new Error("Preferences data is required");
       }
 
-      logger.info("Updating user preferences", { userId, preferences });
+      logger.info("Updating user preferences", {userId, preferences});
 
-      const userRef = adminDB.collection('users').doc(userId);
+      const userRef = adminDB.collection("users").doc(userId);
       const userDoc = await userRef.get();
 
       if (!userDoc.exists) {
@@ -439,23 +479,31 @@ export const updateUserPreferences = onCall(
       // Merge new preferences with existing ones
       const updatedPreferences = {
         ...currentPreferences,
-        ...preferences
+        ...preferences,
       };
 
       await userRef.update({
         preferences: updatedPreferences,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
       return {
         success: true,
-        preferences: updatedPreferences
+        preferences: updatedPreferences,
       };
-    } catch (error) {
-      logger.error("Error updating user preferences:", error);
-      throw new Error(`Failed to update preferences: ${(error as Error).message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error updating user preferences:", errorMessage);
+
+      if (error instanceof Error && error.name === "auth/user-not-found" || errorMessage.includes("auth/user-not-found")) {
+        throw new Error("User account no longer exists");
+      }
+
+      throw new Error(
+        `Failed to update preferences: ${(error as Error).message}`
+      );
     }
-  })
+  }
 );
 
 /**
@@ -467,11 +515,20 @@ export const getUserProfile = onCall(
     memory: "256MiB",
     timeoutSeconds: 30,
   },
-  withAuth(async (request, userId) => {
+  async (request, _response?) => {
     try {
-      logger.info("Getting user profile", { userId });
+      if (!request.auth) {
+        throw new Error("User must be authenticated");
+      }
 
-      const userRef = adminDB.collection('users').doc(userId);
+      const userId = request.auth.uid;
+
+      // Verify the user still exists
+      await adminAuth.getUser(userId);
+
+      logger.info("Getting user profile", {userId});
+
+      const userRef = adminDB.collection("users").doc(userId);
       const userDoc = await userRef.get();
 
       if (!userDoc.exists) {
@@ -479,63 +536,37 @@ export const getUserProfile = onCall(
       }
 
       const userData = userDoc.data();
+      const authUser = await adminAuth.getUser(userId);
 
       return {
         success: true,
         profile: {
-          uid: userData?.uid,
-          email: userData?.email,
-          displayName: userData?.displayName,
-          preferences: userData?.preferences,
-          points: userData?.points || 0,
-          badges: userData?.badges || [],
-          createdAt: userData?.createdAt.toDate().toISOString(),
-          updatedAt: userData?.updatedAt.toDate().toISOString()
-        }
+          uid: userId,
+          email: authUser.email,
+          displayName: authUser.displayName,
+          photoURL: authUser.photoURL,
+          ...userData,
+        },
       };
-    } catch (error) {
-      logger.error("Error retrieving user profile:", error);
-      throw new Error(`Failed to get profile: ${(error as Error).message}`);
-    }
-  })
-);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error getting user profile:", errorMessage);
 
-/**
- * Trigger function when new deal is created
- */
-export const onDealCreated = onDocumentCreated(
-  "deals/{dealId}",
-  async (event) => {
-    try {
-      const dealData = event.data?.data();
-
-      if (!dealData) {
-        logger.warn("No deal data found in document");
-        return;
+      if (error instanceof Error && error.name === "auth/user-not-found" || errorMessage.includes("auth/user-not-found")) {
+        throw new Error("User account no longer exists");
       }
 
-      logger.info("New deal created, generating AI description", {
-        dealId: event.params.dealId,
-        businessName: dealData.businessName,
-      });
-
-      const description = await geminiService.generateDealDescription(
-        dealData as {
-          businessName: string;
-          type?: string;
-          originalPrice?: string;
-          discountedPrice?: string;
-          description?: string;
-        }
-      );
-
-      // Update the deal document with AI-generated description
-      await event.data?.ref.update({
-        aiDescription: description,
-        updatedAt: new Date(),
-      });
-    } catch (error) {
-      logger.error("Error processing new deal:", error);
+      throw new Error(`Failed to get user profile: ${(error as Error).message}`);
     }
   }
 );
+
+export const indexFiles = onRequest(async (req, res) => {
+  try {
+    await indexProjectFiles();
+    res.status(200).send("Files indexed successfully.");
+  } catch (error) {
+    logger.error("Error indexing files:", error);
+    res.status(500).send("Error indexing files.");
+  }
+});

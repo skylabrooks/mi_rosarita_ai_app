@@ -21,18 +21,9 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // Admin-only collections
-    match /admin/{adminId} {
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
-    }
-    // App configuration (read-only for authenticated users)
-    match /config/{configId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.admin == true;
-    }
-    // Default deny for all other collections
+    // Allow authenticated users to read/write other necessary collections
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if request.auth != null;
     }
   }
 }

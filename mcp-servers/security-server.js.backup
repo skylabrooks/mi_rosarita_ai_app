@@ -660,16 +660,15 @@ class SecurityMCPServer {
     const key = crypto.createHash('sha256').update(key_name).digest();
     const iv = crypto.randomBytes(16);
 
-    const cipher = crypto.createCipherGCM('aes-256-gcm', key, iv);
+    const cipher = crypto.createCipher('aes-256-cbc', key);
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    const authTag = cipher.getAuthTag();
 
     return {
       content: [
         {
           type: 'text',
-          text: `Encrypted Data:\n\n📦 Encrypted: ${encrypted}\n🗝️ Key ID: ${key_name}\n🔢 IV: ${iv.toString('hex')}\n🔐 Auth Tag: ${authTag.toString('hex')}\n\n⚠️ Store the key, IV, and auth tag securely and separately from the encrypted data.`,
+          text: `Encrypted Data:\n\n📦 Encrypted: ${encrypted}\n🗝️ Key ID: ${key_name}\n🔢 IV: ${iv.toString('hex')}\n\n⚠️ Store the key securely and separately from the encrypted data.`,
         },
       ],
     };

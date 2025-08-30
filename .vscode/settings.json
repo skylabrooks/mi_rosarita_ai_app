@@ -12,5 +12,6 @@
     "aws.samcli.enableCodeLenses": true,
     "aws.sagemaker.studio.spaces.enableIdentityFiltering": true,
     "IntelligentCodeCompletion.betaMode": true,
-    "IntelligentCodeCompletion.inlineCompletion": true
+    "IntelligentCodeCompletion.inlineCompletion": true,
+    "azure-dev.auth.useIntegratedAuth": true
 }

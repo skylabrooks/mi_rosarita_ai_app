@@ -1,8 +1,8 @@
+const { MCP } = require('@modelcontextprotocol/sdk');
 const fs = require('fs');
 const path = require('path');
 
 async function main() {
-  const { MCP } = await import('@modelcontextprotocol/sdk');
   const args = process.argv.slice(2);
   if (args.length < 2) {
     console.error('Usage: node mcp-client.js <server-name> <command> [command-args]');

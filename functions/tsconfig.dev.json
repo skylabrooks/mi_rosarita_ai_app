@@ -1,5 +1,13 @@
 {
+  "compilerOptions": {
+    "module": "CommonJS",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "outDir": "lib",
+    "strict": true,
+    "forceConsistentCasingInFileNames": true
+  },
   "include": [
-    ".eslintrc.js"
+    "src"
   ]
 }

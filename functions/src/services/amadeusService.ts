@@ -160,8 +160,8 @@ export class AmadeusService {
 
   /**
    * Creates an instance of AmadeusService
-   * @param apiKey The Amadeus API key
-   * @param apiSecret The Amadeus API secret
+   * @param {string} apiKey The Amadeus API key
+   * @param {string} apiSecret The Amadeus API secret
    */
   constructor(apiKey: string, apiSecret: string) {
     this.amadeus = new Amadeus({
@@ -172,8 +172,8 @@ export class AmadeusService {
 
   /**
    * Searches for flight offers using Amadeus API
-   * @param params Flight search parameters
-   * @return Array of flight offers
+   * @param {FlightSearchParams} params Flight search parameters
+   * @return {Promise<FlightOffer[]>} Array of flight offers
    */
   async searchFlights(params: FlightSearchParams): Promise<FlightOffer[]> {
     try {
@@ -207,8 +207,8 @@ export class AmadeusService {
 
   /**
    * Searches for hotel offers using Amadeus API
-   * @param params Hotel search parameters
-   * @return Array of hotel offers
+   * @param {HotelSearchParams} params Hotel search parameters
+   * @return {Promise<HotelOffer[]>} Array of hotel offers
    */
   async searchHotels(params: HotelSearchParams): Promise<HotelOffer[]> {
     try {
@@ -242,8 +242,8 @@ export class AmadeusService {
 
   /**
    * Gets pricing information for a flight offer
-   * @param flightOfferId The ID of the flight offer
-   * @return Pricing information for the flight offer
+   * @param {string} flightOfferId The ID of the flight offer
+   * @return {Promise<object>} Pricing information for the flight offer
    */
   async getFlightPrice(flightOfferId: string): Promise<{
     type: string;
@@ -293,9 +293,9 @@ export class AmadeusService {
 
   /**
    * Books a flight using Amadeus API
-   * @param flightOfferId The ID of the flight offer to book
-   * @param travelers Array of traveler information
-   * @return Flight booking confirmation
+   * @param {string} flightOfferId The ID of the flight offer to book
+   * @param {Array<object>} travelers Array of traveler information
+   * @return {Promise<object>} Flight booking confirmation
    */
   async bookFlight(flightOfferId: string, travelers: Array<{
     id: string;

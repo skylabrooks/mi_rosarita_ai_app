@@ -1,5 +1,5 @@
 import {GoogleGenerativeAI} from "@google/generative-ai";
-import {logger} from "firebase-functions";
+import {logger, config} from "firebase-functions";
 
 export interface UserPreferences {
   duration: number; // in days
@@ -51,10 +51,22 @@ export class GeminiService {
 
   /**
    * Creates an instance of GeminiService
-   * @param apiKey The Google AI API key for authentication
    */
-  constructor(apiKey: string) {
+  constructor() {
+    const apiKey = config().gemini.key;
+    if (!apiKey) {
+      throw new Error("Gemini API key not configured in Firebase functions.");
+    }
     this.genAI = new GoogleGenerativeAI(apiKey);
+  }
+
+  /**
+   * Returns the generative model.
+   * @param model The model to use.
+   * @returns The generative model.
+   */
+  getGenerativeModel(model: string) {
+    return this.genAI.getGenerativeModel({model});
   }
 
   /**
@@ -62,7 +74,9 @@ export class GeminiService {
    * @param userPreferences The user's travel preferences and requirements
    * @return A structured itinerary object
    */
-  async generateItinerary(userPreferences: UserPreferences): Promise<Itinerary> {
+  async generateItinerary(
+    userPreferences: UserPreferences
+  ): Promise<Itinerary> {
     try {
       const prompt = this.buildItineraryPrompt(userPreferences);
 
@@ -125,7 +139,8 @@ export class GeminiService {
     description?: string;
   }): Promise<string> {
     try {
-      const prompt = `Create an attractive, compelling description for this business deal in Rosarito:
+      const prompt = `
+      Create an attractive, compelling description for this business deal in Rosarito:
 
 Business: ${businessInfo.businessName}
 Type: ${businessInfo.type || "General"}
@@ -133,7 +148,7 @@ Original Price: ${businessInfo.originalPrice || "N/A"}
 Discounted Price: ${businessInfo.discountedPrice || "N/A"}
 Description: ${businessInfo.description || "No description available"}
 
-Write a persuasive, engaging description that highlights the value and creates urgency.
+      Write a persuasive, engaging description that highlights the value and creates urgency.
 Keep it under 100 words.`;
 
       const model = this.genAI.getGenerativeModel({
@@ -160,7 +175,8 @@ Keep it under 100 words.`;
    */
   async analyzeUserPhotos(photos: string[]): Promise<string[]> {
     try {
-      const prompt = `Analyze these vacation photos and provide insights about the user's trip.
+      const prompt = `
+      Analyze these vacation photos and provide insights about the user's trip.
 For each photo, identify:
 - Location/activity shown
 - Mood/emotion captured
@@ -202,17 +218,22 @@ Provide a comprehensive summary of the trip based on the photos.`;
       interests,
       groupSize,
       language,
-      dietaryRestrictions
+      dietaryRestrictions,
     } = preferences;
 
-    return `Create a personalized ${duration}-day itinerary for a trip to Rosarito, Mexico.
+    return `
+    Create a personalized ${duration}-day itinerary for a trip to Rosarito, Mexico.
 
 TRAVELER PROFILE:
 - Group size: ${groupSize} people
 - Budget level: ${budget}
 - Interests: ${interests.join(", ")}
 - Language: ${language === "es" ? "Spanish" : "English"}
-${dietaryRestrictions ? `- Dietary restrictions: ${dietaryRestrictions.join(", ")}` : ""}
+    ${
+  dietaryRestrictions ?
+    `- Dietary restrictions: ${dietaryRestrictions.join(", ")}` :
+    ""
+}
 
 REQUIREMENTS:
 1. Focus on authentic Rosarito experiences
@@ -224,7 +245,7 @@ REQUIREMENTS:
     Valle de Guadalupe, ATV tours, and beach activities
 
 FORMAT: Return a JSON object with the complete itinerary structure including
-daily activities, timing, locations, estimated costs, and transportation details.
+      daily activities, timing, locations, estimated costs, and transportation details.
 
 KEY ROSARITO HIGHLIGHTS TO INCLUDE:
 - Puerto Nuevo lobster restaurants
@@ -236,7 +257,8 @@ KEY ROSARITO HIGHLIGHTS TO INCLUDE:
 - Seafood dining options
 - Scenic viewpoints and nature spots
 
-Ensure the itinerary is balanced, engaging, and tailored to the group's preferences.`;
+      Ensure the itinerary is balanced, engaging, and tailored to the group's preferences.
+    `;
   }
 
 
@@ -252,7 +274,11 @@ Ensure the itinerary is balanced, engaging, and tailored to the group's preferen
       date?: string;
       items?: unknown[];
       totalCost?: number;
-      weather?: { temperature: number; condition: string; recommendation: string };
+      weather?: {
+        temperature: number;
+        condition: string;
+        recommendation: string;
+      };
     },
     preferences: UserPreferences
   ): Itinerary {

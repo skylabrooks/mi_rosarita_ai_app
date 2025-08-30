@@ -16,7 +16,9 @@
         "-y",
         "@modelcontextprotocol/server-filesystem",
         "scmillsc0809"
-      ]
+      ],
+      "disabled": true,
+      "alwaysAllow": []
     },
     "sequentialthinking": {
       "command": "npx",

@@ -71,6 +71,9 @@ node_modules/
 service-account.json
 firebase-service-account.json
 
+# Snapshots and backup files (contain sensitive data)
+.snapshots/
+
 # dataconnect generated files
 .dataconnect
 .env.example

@@ -37,6 +37,22 @@
       "args": [
         "mcp-server-time"
       ]
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
+    },
+    "google-maps": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-google-maps"
+      ],
+      "env": {
+        "GOOGLE_MAPS_API_KEY": "tDGxcDGz0iiffZyiRcA_NyLUcIM="
+      }
     }
   }
 }

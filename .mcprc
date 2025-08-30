@@ -1,0 +1,46 @@
+{
+  "mcpServers": {
+    "firebase-server": {
+      "command": "node",
+      "args": [
+        "./mcp-servers/firebase-server.js"
+      ],
+      "env": {
+        "FIREBASE_PROJECT_ID": "mi-rosarita-ai-app"
+      }
+    },
+    "react-native-server": {
+      "command": "node",
+      "args": [
+        "./mcp-servers/react-native-server.js"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    "google-ai-server": {
+      "command": "node",
+      "args": [
+        "./mcp-servers/google-ai-server.js"
+      ]
+    },
+    "api-testing-server": {
+      "command": "node",
+      "args": [
+        "./mcp-servers/api-testing-server.js"
+      ]
+    },
+    "testing-quality-server": {
+      "command": "node",
+      "args": [
+        "./mcp-servers/testing-quality-server.js"
+      ]
+    },
+    "security-server": {
+      "command": "node",
+      "args": [
+        "./mcp-servers/security-server.js"
+      ]
+    }
+  }
+}

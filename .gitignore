@@ -65,6 +65,7 @@ node_modules/
 # dotenv environment variables file
 .env
 .env.local
+.env.example
 
 # Service account credentials (NEVER commit these files!)
 service-account.json
@@ -72,3 +73,4 @@ firebase-service-account.json
 
 # dataconnect generated files
 .dataconnect
+.env.example

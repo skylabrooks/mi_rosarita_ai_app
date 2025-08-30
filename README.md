@@ -1,273 +1,34 @@
-# 🌴 Mi Rosarita AI - Travel Companion App
+# Mi Rosarita AI App - MCP Client
 
-[![React Native](https://img.shields.io/badge/React%20Native-0.74.5-blue.svg)](https://reactnative.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue.svg)](https://www.typescriptlang.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-Latest-orange.svg)](https://firebase.google.com/)
-[![Google AI](https://img.shields.io/badge/Google%20AI-Gemini%20AI-green.svg)](https://ai.google.dev/)
+This directory contains the client for interacting with the Model Context Protocol (MCP) servers.
 
-An AI-powered travel companion app specifically designed for Rosarito tourism, featuring intelligent itinerary generation, local deal discovery, and photo memory creation using Google's Gemini AI.
+## Setup
 
-## ✨ Features
-
-### 🤖 AI-Powered Features
-- **Smart Itinerary Generation**: Personalized travel plans powered by Google Gemini AI
-- **Dynamic Deal Matching**: Context-aware recommendations for local businesses
-- **Photo Analysis**: AI-powered memory maker with intelligent photo insights
-- **Multilingual Support**: English and Spanish interface
-
-### 📱 Core Functionality
-- **Personalized Itineraries**: Custom travel plans based on user preferences
-- **Local Deal Discovery**: Exclusive offers from Rosarito businesses
-- **Memory Maker**: Photo analysis and trip insights
-- **Real-time Synchronization**: Live updates via Firebase
-
-### 🛠️ Technical Features
-- **Cross-platform**: iOS and Android support via React Native
-- **Offline Capability**: Local data storage and synchronization
-- **Payment Integration**: Stripe payment processing ready
-- **Location Services**: GPS and mapping capabilities
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js** 18+ ([Download](https://nodejs.org/))
-- **npm** or **yarn** package manager
-- **React Native development environment** ([Setup Guide](https://reactnative.dev/docs/environment-setup))
-- **Firebase CLI** (`npm install -g firebase-tools`)
-- **Google AI API Key** ([Get API Key](https://aistudio.google.com/app/apikey))
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/mi-rosarita-ai-app.git
-   cd mi-rosarita-ai-app
-   ```
-
-2. **Install dependencies**
-   ```bash
-   # Install main app dependencies
-   npm install
-
-   # Install Firebase Functions dependencies
-   cd functions
-   npm install
-   cd ..
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   # Copy the example environment file
-   cp .env.example .env
-
-   # Edit .env with your actual values
-   # See .env.example for detailed setup instructions
-   ```
-
-4. **Configure Firebase**
-   ```bash
-   # Login to Firebase (if not already logged in)
-   firebase login
-
-   # Initialize Firebase in your project
-   firebase use --add
-   # Select your Firebase project or create a new one
-   ```
-
-5. **Set up Google AI API**
-   - Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
-   - Add it to your `.env` file as `GOOGLE_AI_API_KEY`
-
-### Development
+Before using the client, run the setup script to configure your Firebase project ID:
 
 ```bash
-# Start Metro bundler
-npm start
-
-# Run on iOS simulator
-npm run ios
-
-# Run on Android emulator/device
-npm run android
-
-# Run on web (experimental)
-npm run web
+node setup.js
 ```
 
-### Firebase Functions Development
+This will prompt you for your Firebase project ID and automatically update the `.mcprc` file.
+
+## Usage
+
+You can use the `mcp-client.js` script to send commands to any of the configured MCP servers.
+
+### Syntax
 
 ```bash
-# Build and serve functions locally
-cd functions
-npm run serve
-
-# Deploy functions to production
-firebase deploy --only functions
+node mcp-client.js <server-name> <command> [command-args]
 ```
 
-## 📁 Project Structure
+-   `<server-name>`: The name of the server to interact with (e.g., `firebase-server`).
+-   `<command>`: The command to execute on the server.
+-   `[command-args]`: A JSON string of arguments for the command.
 
-```
-mi-rosarita-ai-app/
-├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── Button.tsx      # Customizable button component
-│   │   ├── Card.tsx        # Card component with elevation
-│   │   ├── Loading.tsx     # Loading indicator component
-│   │   ├── ErrorBoundary.tsx # Error handling component
-│   │   └── index.ts        # Component exports
-│   ├── screens/            # App screens
-│   │   ├── HomeScreen.tsx  # Main dashboard
-│   │   ├── ItineraryScreen.tsx # Itinerary display
-│   │   └── ProfileScreen.tsx # User profile
-│   ├── store/              # Redux state management
-│   │   ├── slices/         # Redux slices
-│   │   └── index.ts        # Store configuration
-│   ├── navigation/         # Navigation configuration (planned)
-│   ├── assets/             # Static assets (planned)
-│   ├── utils/              # Utility functions (planned)
-│   ├── App.tsx             # Main app component
-│   └── index.js            # React Native entry point
-├── functions/               # Firebase Cloud Functions
-│   └── src/
-│       ├── services/       # Business logic services
-│       └── index.ts        # Functions entry point
-├── public/                  # Static web assets
-├── scripts/                 # Build and utility scripts
-├── .env.example            # Environment variables template
-├── app.json                # Expo configuration
-├── firebase.json           # Firebase configuration
-└── package.json            # Dependencies and scripts
-```
+### Example
 
-## 🔧 Configuration
-
-### Environment Variables
-
-See `.env.example` for all required environment variables. Key variables include:
-
-- `GOOGLE_AI_API_KEY`: Your Google Gemini AI API key
-- `FIREBASE_PROJECT_ID`: Your Firebase project ID
-- `FIREBASE_API_KEY`: Your Firebase web API key
-
-### Firebase Setup
-
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable required services:
-   - Authentication
-   - Firestore Database
-   - Cloud Functions
-   - Storage
-3. Copy configuration values to your `.env` file
-
-## 🧪 Testing
+To query the `deals` collection from the `firebase-server`:
 
 ```bash
-# Run unit tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run linting
-npm run lint
-
-# Format code
-npm run format
-```
-
-## 🚢 Deployment
-
-### Mobile App
-
-```bash
-# Build for production
-npx expo build:android
-npx expo build:ios
-
-# Or use EAS Build (recommended)
-npx eas build --platform android
-npx eas build --platform ios
-```
-
-### Firebase Functions
-
-```bash
-# Deploy functions only
-firebase deploy --only functions
-
-# Deploy entire project
-firebase deploy
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guidelines and code of conduct.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 Development Roadmap
-
-### Phase 1: Core Features ✅
-- [x] AI-powered itinerary generation
-- [x] Basic UI components
-- [x] Firebase integration
-- [x] Environment configuration
-
-### Phase 2: Enhanced Features 🔄
-- [ ] Advanced photo analysis with Google Vision API
-- [ ] Real-time deal notifications
-- [ ] Social features and trip sharing
-- [ ] Offline itinerary management
-
-### Phase 3: Advanced Features 📋
-- [ ] Multi-language AI responses
-- [ ] Personalized recommendations
-- [ ] Business partner dashboard
-- [ ] Analytics and reporting
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Metro bundler issues:**
-```bash
-# Clear Metro cache
-npx react-native start --reset-cache
-```
-
-**Firebase permission errors:**
-- Ensure your Firebase project has the correct security rules
-- Check that your API keys are correctly set in `.env`
-
-**Google AI API errors:**
-- Verify your API key is valid and has quota remaining
-- Check that the Gemini API is enabled in your Google Cloud project
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Google AI Gemini**: For powering our AI features
-- **Firebase**: For backend services and real-time database
-- **React Native Community**: For the amazing cross-platform framework
-- **Rosarito Tourism Board**: For inspiration and local insights
-
-## 📞 Support
-
-- **Documentation**: [Project Wiki](https://github.com/your-username/mi-rosarita-ai-app/wiki)
-- **Issues**: [GitHub Issues](https://github.com/your-username/mi-rosarita-ai-app/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/mi-rosarita-ai-app/discussions)
-
----
-
-**Made with ❤️ for the Rosarito community**
-
-*Transforming how travelers discover and experience Rosarito with the power of AI*
+node mcp-client.js firebase-server firebase_firestore_query '{"collection":"deals","limit":10}'

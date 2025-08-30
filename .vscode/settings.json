@@ -1,4 +1,16 @@
 {
     "geminicodeassist.codeGenerationPaneViewEnabled": true,
-    "geminicodeassist.project": " mi-rosarita-ai-app"
+    "geminicodeassist.project": " mi-rosarita-ai-app",
+    "aws.experiments": {
+        "jsonResourceModification": true,
+        "amazonqLSP": true,
+        "amazonqLSPInline": true,
+        "amazonqChatLSP": true,
+        "amazonqLSPInlineChat": true,
+        "amazonqLSPNEP": true
+    },
+    "aws.samcli.enableCodeLenses": true,
+    "aws.sagemaker.studio.spaces.enableIdentityFiltering": true,
+    "IntelligentCodeCompletion.betaMode": true,
+    "IntelligentCodeCompletion.inlineCompletion": true
 }
